@@ -187,76 +187,6 @@ impl LiquidStaking {
         self._approve(from, spender, current_allowance - amount)?;
         Ok(true)
     }
-
-    fn _transfer(&mut self, from: Address, to: Address, amount: U256) -> Result<(), Vec<u8>> {
-        if from == Address::ZERO || to == Address::ZERO {
-            return Err(ZeroAddress {}.abi_encode());
-        }
-
-        let from_balance = self.balances.get(from);
-        if from_balance < amount {
-            return Err(InsufficientBalance {}.abi_encode());
-        }
-        self.balances.setter(from).set(from_balance - amount);
-        let to_balance = self.balances.get(to);
-        self.balances.setter(to).set(to_balance + amount);
-        evm::log(Transfer {
-            from,
-            to,
-            value: amount,
-        });
-        Ok(())
-    }
-
-    fn _mint(&mut self, to: Address, amount: U256) -> Result<(), Vec<u8>> {
-        if to == Address::ZERO {
-            return Err(ZeroAddress {}.abi_encode());
-        }
-        let total_supply = self.total_supply.get();
-        self.total_supply.set(total_supply + amount);
-
-        let balance = self.balances.get(to);
-        self.balances.setter(to).set(balance + amount);
-        evm::log(Transfer {
-            from: Address::ZERO,
-            to,
-            value: amount,
-        });
-        Ok(())
-    }
-
-    fn _burn(&mut self, from: Address, amount: U256) -> Result<(), Vec<u8>> {
-        if from == Address::ZERO {
-            return Err(ZeroAddress {}.abi_encode());
-        }
-        let balance = self.balances.get(from);
-        if balance < amount {
-            return Err(InsufficientBalance {}.abi_encode());
-        }
-        self.balances.setter(from).set(balance - amount);
-        let total_supply = self.total_supply.get();
-        self.total_supply.set(total_supply - amount);
-        evm::log(Transfer {
-            from,
-            to: Address::ZERO,
-            value: amount,
-        });
-        Ok(())
-    }
-
-    fn _approve(&mut self, owner: Address, spender: Address, amount: U256) -> Result<(), Vec<u8>> {
-        if owner == Address::ZERO || spender == Address::ZERO {
-            return Err(ZeroAddress {}.abi_encode());
-        }
-        self.allowances.setter(owner).setter(spender).set(amount);
-        evm::log(Approval {
-            owner,
-            spender,
-            value: amount,
-        });
-        Ok(())
-    }
-
     #[payable]
     pub fn stake(&mut self) -> Result<(), Vec<u8>> {
         self.when_not_paused()?;
@@ -587,6 +517,77 @@ impl LiquidStaking {
         if sender != self.owner.get() {
             return Err(Unauthorized {}.abi_encode());
         }
+        Ok(())
+    }
+}
+
+impl LiquidStaking {
+    fn _burn(&mut self, from: Address, amount: U256) -> Result<(), Vec<u8>> {
+        if from == Address::ZERO {
+            return Err(ZeroAddress {}.abi_encode());
+        }
+        let balance = self.balances.get(from);
+        if balance < amount {
+            return Err(InsufficientBalance {}.abi_encode());
+        }
+        self.balances.setter(from).set(balance - amount);
+        let total_supply = self.total_supply.get();
+        self.total_supply.set(total_supply - amount);
+        evm::log(Transfer {
+            from,
+            to: Address::ZERO,
+            value: amount,
+        });
+        Ok(())
+    }
+
+    fn _approve(&mut self, owner: Address, spender: Address, amount: U256) -> Result<(), Vec<u8>> {
+        if owner == Address::ZERO || spender == Address::ZERO {
+            return Err(ZeroAddress {}.abi_encode());
+        }
+        self.allowances.setter(owner).setter(spender).set(amount);
+        evm::log(Approval {
+            owner,
+            spender,
+            value: amount,
+        });
+        Ok(())
+    }
+
+    fn _mint(&mut self, to: Address, amount: U256) -> Result<(), Vec<u8>> {
+        if to == Address::ZERO {
+            return Err(ZeroAddress {}.abi_encode());
+        }
+        let total_supply = self.total_supply.get();
+        self.total_supply.set(total_supply + amount);
+
+        let balance = self.balances.get(to);
+        self.balances.setter(to).set(balance + amount);
+        evm::log(Transfer {
+            from: Address::ZERO,
+            to,
+            value: amount,
+        });
+        Ok(())
+    }
+
+    fn _transfer(&mut self, from: Address, to: Address, amount: U256) -> Result<(), Vec<u8>> {
+        if from == Address::ZERO || to == Address::ZERO {
+            return Err(ZeroAddress {}.abi_encode());
+        }
+
+        let from_balance = self.balances.get(from);
+        if from_balance < amount {
+            return Err(InsufficientBalance {}.abi_encode());
+        }
+        self.balances.setter(from).set(from_balance - amount);
+        let to_balance = self.balances.get(to);
+        self.balances.setter(to).set(to_balance + amount);
+        evm::log(Transfer {
+            from,
+            to,
+            value: amount,
+        });
         Ok(())
     }
 }
